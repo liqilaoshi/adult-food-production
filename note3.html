@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>中文词汇连连看 - 趣味复习游戏</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <!-- Canvas Confetti for Celebration -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <style>
+        body {
+            font-family: 'Noto Sans SC', sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #311042 100%);
+            min-height: 100vh;
+            color: #f8fafc;
+            user-select: none;
+        }
+
+        /* Glassmorphism Card Style */
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        /* Card Animations & Effects */
+        .game-card {
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            transform-style: preserve-3d;
+            perspective: 1000px;
+            cursor: pointer;
+        }
+
+        .game-card:hover {
+            transform: translateY(-4px) scale(1.02);
+            box-shadow: 0 10px 25px -5px rgba(99, 102, 241, 0.4);
+        }
+
+        .game-card:active {
+            transform: translateY(0) scale(0.98);
+        }
+
+        /* Card Selected State */
+        .game-card.selected {
+            border-color: #6366f1;
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.3) 0%, rgba(139, 92, 246, 0.3) 100%);
+            box-shadow: 0 0 20px rgba(99, 102, 241, 0.6), inset 0 0 10px rgba(99, 102, 241, 0.4);
+            transform: translateY(-4px) scale(1.03);
+        }
+
+        /* Matched State */
+        .game-card.matched {
+            visibility: hidden;
+            opacity: 0;
+            transform: scale(0.5);
+            pointer-events: none;
+            transition: all 0.4s ease-out;
+        }
+
+        /* Wrong Match Shake Animation */
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-8px); }
+            40%, 80% { transform: translateX(8px); }
+        }
+
+        .game-card.wrong {
+            border-color: #ef4444;
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.3) 0%, rgba(220, 38, 38, 0.3) 100%);
+            box-shadow: 0 0 20px rgba(239, 68, 68, 0.6);
+            animation: shake 0.4s ease-in-out;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.6);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(99, 102, 241, 0.5);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(99, 102, 241, 0.8);
+        }
+
+        /* Pulse glowing badge */
+        .streak-badge {
+            animation: pulse-glow 1.5s infinite alternate;
+        }
+
+        @keyframes pulse-glow {
+            0% { box-shadow: 0 0 5px rgba(245, 158, 11, 0.5); }
+            100% { box-shadow: 0 0 20px rgba(245, 158, 11, 0.9); }
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-between p-4 md:p-6 min-h-screen">
+
+    <!-- Header / Navbar -->
+    <header class="w-full max-w-5xl flex flex-wrap justify-between items-center mb-4 gap-4">
+        <div class="flex items-center space-x-3">
+            <div class="p-3 bg-indigo-600/30 border border-indigo-500/50 rounded-2xl text-indigo-400">
+                <i class="fa-solid fa-gamepad text-2xl md:text-3xl"></i>
+            </div>
+            <div>
+                <h1 class="text-xl md:text-2xl font-black bg-gradient-to-r from-indigo-400 via-purple-300 to-pink-400 bg-clip-text text-transparent">
+                    中文词汇连连看
+                </h1>
+                <p class="text-xs md:text-sm text-slate-400">高效配对 · 轻松复习专业词汇</p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+            <button id="soundToggleBtn" onclick="toggleAudio()" class="px-3 py-2 glass-panel hover:bg-slate-700/50 rounded-xl text-slate-300 transition text-sm flex items-center gap-2">
+                <i id="soundIcon" class="fa-solid fa-volume-high text-indigo-400"></i>
+                <span id="soundText" class="hidden sm:inline">发音: 开</span>
+            </button>
+            <button onclick="showWordListModal()" class="px-3 py-2 glass-panel hover:bg-slate-700/50 rounded-xl text-slate-300 transition text-sm flex items-center gap-2">
+                <i class="fa-solid fa-book-open text-purple-400"></i>
+                <span class="hidden sm:inline">词汇表</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Game Dashboard / Controls (Visible during game) -->
+    <div id="gameStats" class="w-full max-w-5xl glass-panel rounded-2xl p-4 mb-4 grid grid-cols-2 sm:grid-cols-4 gap-4 text-center hidden">
+        <div class="flex flex-col items-center justify-center p-2 bg-slate-800/40 rounded-xl border border-slate-700/50">
+            <span class="text-xs text-slate-400 mb-1"><i class="fa-solid fa-stopwatch text-amber-400 mr-1"></i>剩余时间</span>
+            <span id="timerDisplay" class="text-xl md:text-2xl font-bold text-amber-400">60s</span>
+        </div>
+        <div class="flex flex-col items-center justify-center p-2 bg-slate-800/40 rounded-xl border border-slate-700/50">
+            <span class="text-xs text-slate-400 mb-1"><i class="fa-solid fa-trophy text-yellow-400 mr-1"></i>当前得分</span>
+            <span id="scoreDisplay" class="text-xl md:text-2xl font-bold text-yellow-300">0</span>
+        </div>
+        <div class="flex flex-col items-center justify-center p-2 bg-slate-800/40 rounded-xl border border-slate-700/50">
+            <span class="text-xs text-slate-400 mb-1"><i class="fa-solid fa-fire text-orange-500 mr-1"></i>连击 (Streak)</span>
+            <span id="streakDisplay" class="text-xl md:text-2xl font-bold text-orange-400">x0</span>
+        </div>
+        <div class="flex flex-col items-center justify-center p-2 bg-slate-800/40 rounded-xl border border-slate-700/50">
+            <span class="text-xs text-slate-400 mb-1"><i class="fa-solid fa-layer-group text-indigo-400 mr-1"></i>进度 (对)</span>
+            <span id="progressDisplay" class="text-xl md:text-2xl font-bold text-indigo-300">0 / 8</span>
+        </div>
+    </div>
+
+    <!-- Main Game Container Area -->
+    <main class="w-full max-w-5xl flex-grow flex flex-col justify-center items-center relative">
+
+        <!-- 1. Start / Mode Selection Screen -->
+        <div id="startScreen" class="w-full glass-panel rounded-3xl p-6 md:p-10 text-center max-w-2xl my-auto">
+            <div class="w-16 h-16 bg-indigo-600/20 border border-indigo-500/40 rounded-2xl flex items-center justify-center mx-auto mb-4 text-indigo-400 text-3xl">
+                <i class="fa-solid fa-brain"></i>
+            </div>
+            <h2 class="text-2xl md:text-3xl font-bold text-white mb-2">选择复习配对模式</h2>
+            <p class="text-slate-400 text-sm mb-6">点击相对应的卡片进行消除，考验你的记忆力与反应速度！</p>
+
+            <div class="space-y-3 mb-8 text-left">
+                <label class="block p-4 rounded-xl border border-slate-700/80 bg-slate-800/50 hover:border-indigo-500/80 hover:bg-slate-800/80 transition cursor-pointer group">
+                    <div class="flex items-center">
+                        <input type="radio" name="gameMode" value="pinyin" checked class="w-4 h-4 text-indigo-600 focus:ring-indigo-500">
+                        <div class="ml-3">
+                            <span class="font-bold text-white group-hover:text-indigo-300 transition">汉字 ↔ 拼音</span>
+                            <p class="text-xs text-slate-400">练习汉字与标准汉语拼音的对应关系</p>
+                        </div>
+                    </div>
+                </label>
+
+                <label class="block p-4 rounded-xl border border-slate-700/80 bg-slate-800/50 hover:border-indigo-500/80 hover:bg-slate-800/80 transition cursor-pointer group">
+                    <div class="flex items-center">
+                        <input type="radio" name="gameMode" value="english" class="w-4 h-4 text-indigo-600 focus:ring-indigo-500">
+                        <div class="ml-3">
+                            <span class="font-bold text-white group-hover:text-indigo-300 transition">汉字 ↔ 英文释义</span>
+                            <p class="text-xs text-slate-400">巩固汉字与英文词义的理解</p>
+                        </div>
+                    </div>
+                </label>
+
+                <label class="block p-4 rounded-xl border border-slate-700/80 bg-slate-800/50 hover:border-indigo-500/80 hover:bg-slate-800/80 transition cursor-pointer group">
+                    <div class="flex items-center">
+                        <input type="radio" name="gameMode" value="mixed" class="w-4 h-4 text-indigo-600 focus:ring-indigo-500">
+                        <div class="ml-3">
+                            <span class="font-bold text-white group-hover:text-indigo-300 transition">综合挑战模式 (随机配对)</span>
+                            <p class="text-xs text-slate-400">混合汉字、拼音与英文释义的高难度挑战</p>
+                        </div>
+                    </div>
+                </label>
+            </div>
+
+            <!-- Difficulty / Board Size Selection -->
+            <div class="mb-8">
+                <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">每轮卡片数量</label>
+                <div class="flex justify-center gap-3">
+                    <button type="button" onclick="setPairCount(6)" id="count6Btn" class="px-4 py-2 rounded-xl border text-sm font-semibold transition border-indigo-500 bg-indigo-600/30 text-white">6 对 (12张)</button>
+                    <button type="button" onclick="setPairCount(8)" id="count8Btn" class="px-4 py-2 rounded-xl border text-sm font-semibold transition border-slate-700 bg-slate-800/50 text-slate-300 hover:border-slate-500">8 对 (16张)</button>
+                    <button type="button" onclick="setPairCount(10)" id="count10Btn" class="px-4 py-2 rounded-xl border text-sm font-semibold transition border-slate-700 bg-slate-800/50 text-slate-300 hover:border-slate-500">10 对 (20张)</button>
+                </div>
+            </div>
+
+            <button onclick="startGame()" class="w-full py-4 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white rounded-xl font-bold text-lg shadow-lg hover:shadow-indigo-500/30 hover:scale-[1.01] active:scale-[0.99] transition duration-200">
+                开始游戏 <i class="fa-solid fa-play ml-2 text-sm"></i>
+            </button>
+        </div>
+
+        <!-- 2. Active Game Board Screen -->
+        <div id="gameBoard" class="w-full hidden grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 md:gap-4 my-auto">
+            <!-- Cards will be dynamically injected here via JS -->
+        </div>
+
+        <!-- 3. Victory / Round Complete Modal Overlay -->
+        <div id="victoryScreen" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 z-50 hidden">
+            <div class="glass-panel rounded-3xl p-8 max-w-md w-full text-center border-indigo-500/40 shadow-2xl animate-fade-in">
+                <div class="w-20 h-20 bg-emerald-500/20 border border-emerald-500/50 rounded-full flex items-center justify-center mx-auto mb-4 text-emerald-400 text-4xl">
+                    <i class="fa-solid fa-crown"></i>
+                </div>
+                <h2 class="text-3xl font-black text-white mb-1">太棒了！顺利通关</h2>
+                <p class="text-slate-400 text-sm mb-6">你掌握了全部配对词汇！</p>
+
+                <div class="bg-slate-800/60 rounded-2xl p-4 border border-slate-700/60 mb-6 space-y-2 text-left text-sm">
+                    <div class="flex justify-between items-center text-slate-300">
+                        <span>最终得分：</span>
+                        <span id="finalScore" class="font-bold text-xl text-yellow-400">0</span>
+                    </div>
+                    <div class="flex justify-between items-center text-slate-300">
+                        <span>最高连击：</span>
+                        <span id="maxStreak" class="font-bold text-orange-400">x0</span>
+                    </div>
+                    <div class="flex justify-between items-center text-slate-300">
+                        <span>耗时：</span>
+                        <span id="timeUsed" class="font-bold text-emerald-400">0s</span>
+                    </div>
+                </div>
+
+                <div class="flex gap-3">
+                    <button onclick="startGame()" class="flex-1 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl transition shadow-lg">
+                        下一轮 <i class="fa-solid fa-arrow-right ml-1"></i>
+                    </button>
+                    <button onclick="returnToStart()" class="px-4 py-3 bg-slate-700 hover:bg-slate-600 text-slate-200 font-semibold rounded-xl transition">
+                        菜单
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. Game Over Modal Overlay -->
+        <div id="gameOverScreen" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 z-50 hidden">
+            <div class="glass-panel rounded-3xl p-8 max-w-md w-full text-center border-rose-500/40 shadow-2xl animate-fade-in">
+                <div class="w-20 h-20 bg-rose-500/20 border border-rose-500/50 rounded-full flex items-center justify-center mx-auto mb-4 text-rose-400 text-4xl">
+                    <i class="fa-solid fa-hourglass-end"></i>
+                </div>
+                <h2 class="text-3xl font-black text-white mb-1">时间到！</h2>
+                <p class="text-slate-400 text-sm mb-6">别灰心，再试一次巩固这些词汇吧！</p>
+
+                <div class="bg-slate-800/60 rounded-2xl p-4 border border-slate-700/60 mb-6 text-left text-sm space-y-2">
+                    <div class="flex justify-between items-center text-slate-300">
+                        <span>本次得分：</span>
+                        <span id="gameOverScore" class="font-bold text-xl text-yellow-400">0</span>
+                    </div>
+                    <div class="flex justify-between items-center text-slate-300">
+                        <span>成功配对：</span>
+                        <span id="gameOverMatched" class="font-bold text-indigo-400">0 对</span>
+                    </div>
+                </div>
+
+                <div class="flex gap-3">
+                    <button onclick="startGame()" class="flex-1 py-3 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-xl transition shadow-lg">
+                        重新开始 <i class="fa-solid fa-rotate-right ml-1"></i>
+                    </button>
+                    <button onclick="returnToStart()" class="px-4 py-3 bg-slate-700 hover:bg-slate-600 text-slate-200 font-semibold rounded-xl transition">
+                        菜单
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Word List Drawer/Modal -->
+    <div id="wordListModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="glass-panel rounded-3xl w-full max-w-2xl max-h-[85vh] flex flex-col border-slate-700">
+            <div class="p-5 border-b border-slate-700/80 flex justify-between items-center">
+                <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-book text-indigo-400"></i> 全部复习词汇清单 (31词)
+                </h3>
+                <button onclick="closeWordListModal()" class="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            
+            <div class="p-4 overflow-y-auto flex-grow space-y-2">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2" id="wordListContainer">
+                    <!-- Dynamic Word Items Injected Here -->
+                </div>
+            </div>
+
+            <div class="p-4 border-t border-slate-700/80 text-center">
+                <button onclick="closeWordListModal()" class="px-6 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-sm font-semibold transition">
+                    关闭
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="w-full max-w-5xl text-center py-4 text-xs text-slate-500">
+        中文词汇强化复习系统 &copy; 词汇连连看练习
+    </footer>
+
+    <!-- JavaScript Game Logic -->
+    <script>
+        // Full Vocabulary Database from Prompt
+        const vocabularyData = [
+            { id: 1, hanzi: "包含", pinyin: "bāohán", english: "contain; include", category: "通用词汇" },
+            { id: 2, hanzi: "依次", pinyin: "yīcì", english: "in order; sequentially", category: "通用词汇" },
+            { id: 3, hanzi: "加工", pinyin: "jiāgōng", english: "process; manufacture", category: "通用词汇" },
+            { id: 4, hanzi: "关键", pinyin: "guānjiàn", english: "critical/key", category: "通用词汇" },
+            { id: 5, hanzi: "含量", pinyin: "hánliàng", english: "content", category: "通用词汇" },
+            { id: 6, hanzi: "几乎", pinyin: "jīhū", english: "almost; nearly", category: "通用词汇" },
+            { id: 7, hanzi: "涉及", pinyin: "shèjí", english: "involve; concern", category: "通用词汇" },
+            { id: 8, hanzi: "品质", pinyin: "pǐnzhì", english: "quality", category: "通用词汇" },
+            { id: 9, hanzi: "蛋白质", pinyin: "dànbáizhì", english: "protein", category: "通用词汇" },
+            { id: 10, hanzi: "消化", pinyin: "xiāohuà", english: "digest", category: "通用词汇" },
+            { id: 11, hanzi: "分解", pinyin: "fēnjiě", english: "decompose; break down", category: "通用词汇" },
+            { id: 12, hanzi: "人体", pinyin: "réntǐ", english: "human body", category: "通用词汇" },
+            { id: 13, hanzi: "吸收", pinyin: "xīshōu", english: "absorb", category: "通用词汇" },
+            { id: 14, hanzi: "奶制品", pinyin: "nǎizhìpǐn", english: "dairy products", category: "通用词汇" },
+            { id: 15, hanzi: "豆制品", pinyin: "dòuzhìpǐn", english: "soya products", category: "通用词汇" },
+            { id: 16, hanzi: "维持", pinyin: "wéichí", english: "maintain; sustain", category: "通用词汇" },
+            { id: 17, hanzi: "能量", pinyin: "néngliàng", english: "energy", category: "通用词汇" },
+            { id: 18, hanzi: "廉价", pinyin: "liánjià", english: "inexpensive; cheap", category: "通用词汇" },
+            { id: 19, hanzi: "淀粉", pinyin: "diànfěn", english: "starch", category: "通用词汇" },
+            { id: 20, hanzi: "氨基酸", pinyin: "ānjīsuān", english: "amino acid", category: "专业词汇" },
+            { id: 21, hanzi: "碳水化合物", pinyin: "tànshuǐ-huàhéwù", english: "carbohydrate", category: "专业词汇" },
+            { id: 22, hanzi: "单糖", pinyin: "dāntáng", english: "monosaccharide", category: "专业词汇" },
+            { id: 23, hanzi: "低聚糖", pinyin: "dījùtáng", english: "oligosaccharide", category: "专业词汇" },
+            { id: 24, hanzi: "多糖", pinyin: "duōtáng", english: "polysaccharide", category: "专业词汇" },
+            { id: 25, hanzi: "葡萄糖", pinyin: "pútáotáng", english: "glucose", category: "专业词汇" },
+            { id: 26, hanzi: "乳糖", pinyin: "rǔtáng", english: "lactose", category: "专业词汇" },
+            { id: 27, hanzi: "水解度", pinyin: "shuǐjiědù", english: "hydrolysis degree", category: "专业词汇" },
+            { id: 28, hanzi: "蔗糖", pinyin: "zhètáng", english: "sucrose", category: "专业词汇" },
+            { id: 29, hanzi: "麦芽糖", pinyin: "màiyátáng", english: "maltose", category: "专业词汇" },
+            { id: 30, hanzi: "棉子糖", pinyin: "miánzǐtáng", english: "raffinose", category: "专业词汇" },
+            { id: 31, hanzi: "块茎", pinyin: "kuàijīng", english: "tuber", category: "专业词汇" }
+        ];
+
+        // Game State Variables
+        let targetPairCount = 8; // Default 8 pairs
+        let currentCards = [];
+        let selectedCardIndex = null;
+        let isProcessing = false;
+        let score = 0;
+        let streak = 0;
+        let maxStreak = 0;
+        let matchedPairs = 0;
+        let timer = null;
+        let timeLeft = 60;
+        let totalTimeSpent = 0;
+        let isAudioEnabled = true;
+
+        // Web Speech Synthesis Setup
+        const synth = window.speechSynthesis;
+
+        function speakWord(text) {
+            if (!isAudioEnabled || !synth) return;
+            // Cancel ongoing speech
+            synth.cancel();
+            
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'zh-CN';
+            utterance.rate = 0.85; // Slightly slower for clarity
+            synth.speak(utterance);
+        }
+
+        function toggleAudio() {
+            isAudioEnabled = !isAudioEnabled;
+            const icon = document.getElementById('soundIcon');
+            const text = document.getElementById('soundText');
+            if (isAudioEnabled) {
+                icon.className = "fa-solid fa-volume-high text-indigo-400";
+                text.innerText = "发音: 开";
+            } else {
+                icon.className = "fa-solid fa-volume-xmark text-slate-500";
+                text.innerText = "发音: 关";
+            }
+        }
+
+        // Difficulty Option Setter
+        function setPairCount(count) {
+            targetPairCount = count;
+            [6, 8, 10].forEach(n => {
+                const btn = document.getElementById(`count${n}Btn`);
+                if (n === count) {
+                    btn.className = "px-4 py-2 rounded-xl border text-sm font-semibold transition border-indigo-500 bg-indigo-600/30 text-white";
+                } else {
+                    btn.className = "px-4 py-2 rounded-xl border text-sm font-semibold transition border-slate-700 bg-slate-800/50 text-slate-300 hover:border-slate-500";
+                }
+            });
+        }
+
+        // Initialize and Start Game
+        function startGame() {
+            // Get selected game mode
+            const modeInput = document.querySelector('input[name="gameMode"]:checked');
+            const mode = modeInput ? modeInput.value : 'pinyin';
+
+            // Reset game state
+            score = 0;
+            streak = 0;
+            maxStreak = 0;
+            matchedPairs = 0;
+            selectedCardIndex = null;
+            isProcessing = false;
+            
+            // Set Timer based on difficulty
+            timeLeft = targetPairCount * 8; // e.g. 8 pairs = 64s
+            totalTimeSpent = 0;
+
+            // UI Elements Update
+            document.getElementById('startScreen').classList.add('hidden');
+            document.getElementById('victoryScreen').classList.add('hidden');
+            document.getElementById('gameOverScreen').classList.add('hidden');
+            document.getElementById('gameStats').classList.remove('hidden');
+            
+            const gameBoard = document.getElementById('gameBoard');
+            gameBoard.classList.remove('hidden');
+
+            updateStatsDisplay();
+
+            // Prepare cards pool
+            const shuffledVocab = [...vocabularyData].sort(() => Math.random() - 0.5).slice(0, targetPairCount);
+            
+            let cardDeck = [];
+
+            shuffledVocab.forEach((item) => {
+                // Card A: Always Hanzi
+                cardDeck.push({
+                    pairId: item.id,
+                    type: 'hanzi',
+                    displayText: item.hanzi,
+                    speechText: item.hanzi,
+                    subText: '汉字'
+                });
+
+                // Card B: Depends on mode
+                let typeB = mode;
+                if (mode === 'mixed') {
+                    typeB = Math.random() > 0.5 ? 'pinyin' : 'english';
+                }
+
+                if (typeB === 'pinyin') {
+                    cardDeck.push({
+                        pairId: item.id,
+                        type: 'pinyin',
+                        displayText: item.pinyin,
+                        speechText: item.hanzi,
+                        subText: '拼音'
+                    });
+                } else {
+                    cardDeck.push({
+                        pairId: item.id,
+                        type: 'english',
+                        displayText: item.english,
+                        speechText: item.hanzi,
+                        subText: '英文'
+                    });
+                }
+            });
+
+            // Shuffle final card deck
+            currentCards = cardDeck.sort(() => Math.random() - 0.5);
+
+            // Render Game Board Cards
+            renderBoard();
+
+            // Start Countdown Timer
+            clearInterval(timer);
+            timer = setInterval(() => {
+                timeLeft--;
+                totalTimeSpent++;
+                updateStatsDisplay();
+
+                if (timeLeft <= 0) {
+                    clearInterval(timer);
+                    showGameOver();
+                }
+            }, 1000);
+        }
+
+        // Render Cards Grid
+        function renderBoard() {
+            const board = document.getElementById('gameBoard');
+            board.innerHTML = '';
+
+            currentCards.forEach((card, index) => {
+                const cardEl = document.createElement('div');
+                cardEl.id = `card-${index}`;
+                cardEl.className = `game-card glass-panel rounded-2xl p-4 md:p-6 flex flex-col items-center justify-center text-center border border-slate-700/80 min-h-[110px] md:min-h-[130px] relative overflow-hidden`;
+                
+                let mainTextClass = "text-xl md:text-2xl font-bold text-white";
+                if (card.type === 'english') {
+                    mainTextClass = "text-sm md:text-base font-semibold text-slate-200 leading-tight";
+                } else if (card.type === 'pinyin') {
+                    mainTextClass = "text-lg md:text-xl font-medium text-indigo-300";
+                }
+
+                cardEl.innerHTML = `
+                    <span class="absolute top-2 left-2 text-[10px] px-2 py-0.5 rounded-full bg-slate-800/80 text-slate-400 font-mono">
+                        ${card.subText}
+                    </span>
+                    <p class="${mainTextClass} my-auto">${card.displayText}</p>
+                    ${card.type === 'hanzi' ? `<i class="fa-solid fa-volume-low text-xs text-indigo-400/60 absolute bottom-2 right-2"></i>` : ''}
+                `;
+
+                cardEl.addEventListener('click', () => handleCardClick(index));
+                board.appendChild(cardEl);
+            });
+        }
+
+        // Handle Card Selection Logic
+        function handleCardClick(index) {
+            if (isProcessing) return;
+
+            const card = currentCards[index];
+            const cardEl = document.getElementById(`card-${index}`);
+
+            // If clicking already matched or currently selected card
+            if (cardEl.classList.contains('matched') || selectedCardIndex === index) {
+                return;
+            }
+
+            // Speak word on click
+            speakWord(card.speechText);
+
+            // Highlight selected card
+            cardEl.classList.add('selected');
+
+            if (selectedCardIndex === null) {
+                // First card selected
+                selectedCardIndex = index;
+            } else {
+                // Second card selected -> Check Match
+                const firstCard = currentCards[selectedCardIndex];
+                const firstCardEl = document.getElementById(`card-${selectedCardIndex}`);
+
+                isProcessing = true;
+
+                if (firstCard.pairId === card.pairId && firstCard.type !== card.type) {
+                    // --- MATCH SUCCESS ---
+                    setTimeout(() => {
+                        firstCardEl.classList.remove('selected');
+                        cardEl.classList.remove('selected');
+                        
+                        firstCardEl.classList.add('matched');
+                        cardEl.classList.add('matched');
+
+                        // Streak and Score logic
+                        streak++;
+                        if (streak > maxStreak) maxStreak = streak;
+                        const bonusScore = 100 + (streak - 1) * 20;
+                        score += bonusScore;
+                        matchedPairs++;
+
+                        updateStatsDisplay();
+
+                        selectedCardIndex = null;
+                        isProcessing = false;
+
+                        // Check Win Condition
+                        if (matchedPairs === targetPairCount) {
+                            clearInterval(timer);
+                            setTimeout(showVictory, 400);
+                        }
+                    }, 300);
+
+                } else {
+                    // --- MATCH FAILED ---
+                    setTimeout(() => {
+                        firstCardEl.classList.add('wrong');
+                        cardEl.classList.add('wrong');
+
+                        // Reset streak
+                        streak = 0;
+                        updateStatsDisplay();
+
+                        setTimeout(() => {
+                            firstCardEl.classList.remove('selected', 'wrong');
+                            cardEl.classList.remove('selected', 'wrong');
+
+                            selectedCardIndex = null;
+                            isProcessing = false;
+                        }, 500);
+                    }, 300);
+                }
+            }
+        }
+
+        // Update Header Stats Bar
+        function updateStatsDisplay() {
+            document.getElementById('timerDisplay').innerText = `${timeLeft}s`;
+            document.getElementById('scoreDisplay').innerText = score;
+            document.getElementById('streakDisplay').innerText = `x${streak}`;
+            document.getElementById('progressDisplay').innerText = `${matchedPairs} / ${targetPairCount}`;
+            
+            // Highlight timer when low
+            const timerEl = document.getElementById('timerDisplay');
+            if (timeLeft <= 10) {
+                timerEl.className = "text-xl md:text-2xl font-bold text-rose-500 animate-pulse";
+            } else {
+                timerEl.className = "text-xl md:text-2xl font-bold text-amber-400";
+            }
+        }
+
+        // Victory Screen & Confetti
+        function showVictory() {
+            document.getElementById('finalScore').innerText = score;
+            document.getElementById('maxStreak').innerText = `x${maxStreak}`;
+            document.getElementById('timeUsed').innerText = `${totalTimeSpent}s`;
+            document.getElementById('victoryScreen').classList.remove('hidden');
+
+            // Trigger Fireworks / Confetti
+            if (typeof confetti === 'function') {
+                confetti({
+                    particleCount: 100,
+                    spread: 70,
+                    origin: { y: 0.6 }
+                });
+            }
+        }
+
+        // Game Over Screen
+        function showGameOver() {
+            document.getElementById('gameOverScore').innerText = score;
+            document.getElementById('gameOverMatched').innerText = `${matchedPairs} / ${targetPairCount} 对`;
+            document.getElementById('gameOverScreen').classList.remove('hidden');
+        }
+
+        // Return to Menu
+        function returnToStart() {
+            clearInterval(timer);
+            document.getElementById('victoryScreen').classList.add('hidden');
+            document.getElementById('gameOverScreen').classList.add('hidden');
+            document.getElementById('gameBoard').classList.add('hidden');
+            document.getElementById('gameStats').classList.add('hidden');
+            document.getElementById('startScreen').classList.remove('hidden');
+        }
+
+        // Render & Control Word List Drawer
+        function initWordListModal() {
+            const container = document.getElementById('wordListContainer');
+            container.innerHTML = '';
+
+            vocabularyData.forEach(item => {
+                const itemEl = document.createElement('div');
+                itemEl.className = "p-3 bg-slate-800/60 rounded-xl border border-slate-700/60 flex items-center justify-between hover:border-indigo-500/50 transition";
+                itemEl.innerHTML = `
+                    <div class="flex flex-col">
+                        <div class="flex items-baseline gap-2">
+                            <span class="font-bold text-white text-base">${item.hanzi}</span>
+                            <span class="text-xs text-indigo-300">${item.pinyin}</span>
+                        </div>
+                        <span class="text-xs text-slate-400">${item.english}</span>
+                    </div>
+                    <button onclick="speakWord('${item.hanzi}')" class="w-8 h-8 rounded-lg bg-indigo-600/20 hover:bg-indigo-600 text-indigo-300 hover:text-white flex items-center justify-center transition">
+                        <i class="fa-solid fa-volume-high text-xs"></i>
+                    </button>
+                `;
+                container.appendChild(itemEl);
+            });
+        }
+
+        function showWordListModal() {
+            document.getElementById('wordListModal').classList.remove('hidden');
+        }
+
+        function closeWordListModal() {
+            document.getElementById('wordListModal').classList.add('hidden');
+        }
+
+        // Initialize on Load
+        window.onload = function() {
+            initWordListModal();
+        };
+    </script>
+</body>
+</html>
