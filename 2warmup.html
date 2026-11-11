@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>奇妙的食品微生物 - 课前互动热身</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        bio: {
+                            dark: '#070b19',
+                            card: '#0e172e',
+                            border: '#1e293b',
+                            teal: '#00f2fe',
+                            cyan: '#4facfe',
+                            accent: '#38ef7d',
+                            danger: '#ff4b2b',
+                            gold: '#f6d365'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Noto Sans SC', 'Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Custom Glowing & Biotech Aesthetic Styles */
+        body {
+            background-color: #050814;
+            color: #e2e8f0;
+            font-family: 'Noto Sans SC', sans-serif;
+            overflow-x: hidden;
+            user-select: none;
+        }
+
+        /* Animated background canvas layer */
+        #bg-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        /* Glassmorphic card containers */
+        .glass-card {
+            background: rgba(14, 23, 46, 0.85);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border: 1px solid rgba(0, 242, 254, 0.2);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.45);
+        }
+
+        .glass-card:hover {
+            border-color: rgba(0, 242, 254, 0.45);
+            box-shadow: 0 0 24px rgba(0, 242, 254, 0.3);
+        }
+
+        /* Hover Tooltip Animations */
+        .tooltip-card {
+            position: relative;
+        }
+
+        .tooltip-card:hover .tooltip-content {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .tooltip-content {
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-8px);
+            transition: all 0.25s ease-in-out;
+            pointer-events: none;
+        }
+
+        /* Drop Zone Styles */
+        .drop-zone {
+            min-height: 52px;
+            border: 2px dashed rgba(0, 242, 254, 0.3);
+            transition: all 0.25s ease;
+        }
+
+        .drop-zone.drag-over {
+            background: rgba(0, 242, 254, 0.15);
+            border-color: #00f2fe;
+            box-shadow: 0 0 15px rgba(0, 242, 254, 0.4);
+        }
+
+        /* Draggable item animation */
+        .draggable-item {
+            cursor: grab;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .draggable-item:active {
+            cursor: grabbing;
+            transform: scale(1.05);
+        }
+
+        /* Ruby Pinyin styling */
+        ruby {
+            ruby-position: over;
+            font-size: 1.15rem;
+            margin: 0 1px;
+        }
+
+        rt {
+            font-size: 0.65rem;
+            color: #38bdf8;
+            font-weight: 400;
+            letter-spacing: 0;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #070b19;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1e293b;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #00f2fe;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between relative text-slate-100">
+
+    <!-- Microscopic Particle Background Canvas -->
+    <canvas id="bg-canvas"></canvas>
+
+    <!-- App Container -->
+    <div class="relative z-10 flex-grow flex flex-col max-w-7xl w-full mx-auto px-4 py-5">
+
+        <!-- Top Header Navigation -->
+        <header class="flex flex-wrap justify-between items-center pb-3 mb-3 border-b border-cyan-900/40">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-cyan-500 to-emerald-400 flex items-center justify-center text-slate-950 font-bold shadow-lg shadow-cyan-500/30">
+                    <i class="fa-solid fa-microscope text-lg"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl md:text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 via-teal-300 to-emerald-400">
+                        奇妙的食品微生物
+                    </h1>
+                    <p class="text-xs text-slate-400">Adult Food Engineering Course • Interactive Drag & Drop Warm-up</p>
+                </div>
+            </div>
+
+            <!-- Page Indicators -->
+            <div class="flex items-center space-x-2 mt-2 sm:mt-0">
+                <span id="page1-pill" class="px-3 py-1 rounded-full text-xs font-semibold bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 transition-all">
+                    Step 1: 拖拽匹配
+                </span>
+                <i class="fa-solid fa-chevron-right text-xs text-slate-600"></i>
+                <span id="page2-pill" class="px-3 py-1 rounded-full text-xs font-semibold bg-slate-800 text-slate-500 border border-slate-700 transition-all">
+                    Step 2: 思考问答
+                </span>
+            </div>
+        </header>
+
+        <!-- ================= PAGE 1: DRAG & DROP GAME ================= -->
+        <main id="page-1" class="flex-grow flex flex-col justify-between transition-opacity duration-500">
+            
+            <!-- Title Banner -->
+            <div class="text-center mb-4">
+                <h2 class="text-lg md:text-xl font-bold text-cyan-300 tracking-wide flex items-center justify-center gap-2">
+                    <span>课前热身：美味背后的隐形主角</span>
+                </h2>
+                <p class="text-xs text-slate-400 mt-0.5">
+                    <ruby>kè<rt>课</rt></ruby><ruby>qián<rt>前</rt></ruby> <ruby>rè<rt>热</rt></ruby><ruby>shēn<rt>身</rt></ruby>：<ruby>měi<rt>美</rt></ruby><ruby>wèi<rt>味</rt></ruby> <ruby>bèi<rt>背</rt></ruby><ruby>hòu<rt>后</rt></ruby> <ruby>de<rt>的</rt></ruby> <ruby>yǐn<rt>隐</rt></ruby><ruby>xíng<rt>形</rt></ruby> <ruby>zhǔ<rt>主</rt></ruby><ruby>jué<rt>角</rt></ruby>
+                </p>
+                <p class="text-xs text-teal-400/90 mt-1 flex items-center justify-center gap-1">
+                    <i class="fa-solid fa-hand-pointer text-cyan-300"></i> 请将底部右侧的<b>【微生物分类卡片】</b>拖拽到顶部对应的大图放置槽中！（鼠标悬停词条可查看拼音与注释）
+                </p>
+            </div>
+
+            <!-- 2x2 Grid of Large Food Cards (Image takes >75% card space) -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                
+                <!-- Food Card 1: Toast Bread -->
+                <div class="glass-card rounded-2xl overflow-hidden flex flex-col justify-between p-2.5 transition-all duration-300" data-food="bread">
+                    <!-- Huge Image Area (3x height of text block) -->
+                    <div class="relative w-full h-56 sm:h-64 rounded-xl overflow-hidden bg-slate-950 border border-cyan-500/20 group">
+                        <img src="https://i.ibb.co.com/TqdHfkm3/image.png" alt="刚出炉膨松的吐司面包" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" onerror="this.src='https://placehold.co/400x300/1e293b/00f2fe?text=Toast+Bread'">
+                        <div class="absolute bottom-0 inset-x-0 bg-gradient-to-t from-slate-950 via-slate-950/70 to-transparent p-3 pt-8">
+                            <span class="text-xs font-bold text-cyan-300 bg-cyan-950/80 px-2 py-0.5 rounded border border-cyan-700/50">食品 A</span>
+                            <h4 class="font-bold text-slate-100 text-sm md:text-base mt-1">刚出炉膨松的吐司面包</h4>
+                            <p class="text-[11px] text-slate-400">Fluffy Toast Bread</p>
+                        </div>
+                    </div>
+                    <!-- Drop Zone -->
+                    <div class="drop-zone mt-2 rounded-xl flex items-center justify-center p-1" data-target="bread">
+                        <span class="drop-hint text-xs text-slate-500 font-medium">拖入对应的微生物卡片</span>
+                    </div>
+                </div>
+
+                <!-- Food Card 2: Greek Yogurt -->
+                <div class="glass-card rounded-2xl overflow-hidden flex flex-col justify-between p-2.5 transition-all duration-300" data-food="yogurt">
+                    <!-- Huge Image Area -->
+                    <div class="relative w-full h-56 sm:h-64 rounded-xl overflow-hidden bg-slate-950 border border-cyan-500/20 group">
+                        <img src="https://i.ibb.co.com/b5f2SjSx/cleaned.png" alt="质感浓郁的希腊酸奶" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" onerror="this.src='https://placehold.co/400x300/1e293b/00f2fe?text=Greek+Yogurt'">
+                        <div class="absolute bottom-0 inset-x-0 bg-gradient-to-t from-slate-950 via-slate-950/70 to-transparent p-3 pt-8">
+                            <span class="text-xs font-bold text-cyan-300 bg-cyan-950/80 px-2 py-0.5 rounded border border-cyan-700/50">食品 B</span>
+                            <h4 class="font-bold text-slate-100 text-sm md:text-base mt-1">质感浓郁的希腊酸奶</h4>
+                            <p class="text-[11px] text-slate-400">Thick Greek Yogurt</p>
+                        </div>
+                    </div>
+                    <!-- Drop Zone -->
+                    <div class="drop-zone mt-2 rounded-xl flex items-center justify-center p-1" data-target="yogurt">
+                        <span class="drop-hint text-xs text-slate-500 font-medium">拖入对应的微生物卡片</span>
+                    </div>
+                </div>
+
+                <!-- Food Card 3: Blue Cheese -->
+                <div class="glass-card rounded-2xl overflow-hidden flex flex-col justify-between p-2.5 transition-all duration-300" data-food="cheese">
+                    <!-- Huge Image Area -->
+                    <div class="relative w-full h-56 sm:h-64 rounded-xl overflow-hidden bg-slate-950 border border-cyan-500/20 group">
+                        <img src="https://i.ibb.co.com/JFQ4d0tS/image.png" alt="蓝纹奶酪" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" onerror="this.src='https://placehold.co/400x300/1e293b/00f2fe?text=Blue+Cheese'">
+                        <div class="absolute bottom-0 inset-x-0 bg-gradient-to-t from-slate-950 via-slate-950/70 to-transparent p-3 pt-8">
+                            <span class="text-xs font-bold text-cyan-300 bg-cyan-950/80 px-2 py-0.5 rounded border border-cyan-700/50">食品 C</span>
+                            <h4 class="font-bold text-slate-100 text-sm md:text-base mt-1">蓝纹奶酪</h4>
+                            <p class="text-[11px] text-slate-400">Blue Cheese with Veins</p>
+                        </div>
+                    </div>
+                    <!-- Drop Zone -->
+                    <div class="drop-zone mt-2 rounded-xl flex items-center justify-center p-1" data-target="cheese">
+                        <span class="drop-hint text-xs text-slate-500 font-medium">拖入对应的微生物卡片</span>
+                    </div>
+                </div>
+
+                <!-- Food Card 4: Moldy Bread -->
+                <div class="glass-card rounded-2xl overflow-hidden flex flex-col justify-between p-2.5 transition-all duration-300" data-food="moldy">
+                    <!-- Huge Image Area -->
+                    <div class="relative w-full h-56 sm:h-64 rounded-xl overflow-hidden bg-slate-950 border border-cyan-500/20 group">
+                        <img src="https://i.ibb.co.com/whRLXDsp/image.png" alt="发霉变质的面包" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" onerror="this.src='https://placehold.co/400x300/1e293b/00f2fe?text=Moldy+Bread'">
+                        <div class="absolute bottom-0 inset-x-0 bg-gradient-to-t from-slate-950 via-slate-950/70 to-transparent p-3 pt-8">
+                            <span class="text-xs font-bold text-cyan-300 bg-cyan-950/80 px-2 py-0.5 rounded border border-cyan-700/50">食品 D</span>
+                            <h4 class="font-bold text-slate-100 text-sm md:text-base mt-1">忘记吃而发霉变质的面包</h4>
+                            <p class="text-[11px] text-slate-400">Spoiled / Moldy Bread</p>
+                        </div>
+                    </div>
+                    <!-- Drop Zone -->
+                    <div class="drop-zone mt-2 rounded-xl flex items-center justify-center p-1" data-target="moldy">
+                        <span class="drop-hint text-xs text-slate-500 font-medium">拖入对应的微生物卡片</span>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Bottom Draggable Microorganism Items Bar -->
+            <div class="glass-card p-4 rounded-2xl border border-emerald-500/30">
+                <div class="flex items-center justify-between mb-2">
+                    <h3 class="text-xs font-semibold text-emerald-400 uppercase tracking-wider flex items-center gap-2">
+                        <i class="fa-solid fa-dna"></i> 待匹配的微生物词组 (Draggable Microorganisms)
+                    </h3>
+                    <span class="text-[11px] text-slate-400">按住卡片并拖动到上方框内</span>
+                </div>
+
+                <div id="drag-source-container" class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    
+                    <!-- Item 1: Yeast -->
+                    <div id="item-bread" draggable="true" data-type="bread" class="draggable-item tooltip-card p-3 rounded-xl bg-slate-900 border border-emerald-500/40 hover:border-emerald-400 flex items-center justify-between shadow-lg">
+                        <div class="flex items-center space-x-2">
+                            <i class="fa-solid fa-grip-vertical text-slate-500 text-xs"></i>
+                            <span class="font-bold text-emerald-300 text-sm">酵母菌</span>
+                        </div>
+                        <span class="text-[10px] bg-emerald-950 text-emerald-400 px-1.5 py-0.5 rounded border border-emerald-800">Yeast</span>
+
+                        <!-- Tooltip -->
+                        <div class="tooltip-content absolute left-0 bottom-full mb-2 w-56 bg-slate-950 border border-cyan-400/50 rounded-lg p-2.5 text-xs shadow-2xl z-40">
+                            <div class="font-semibold text-cyan-300 flex justify-between">
+                                <span>拼音: jiào mǔ jūn</span>
+                                <span class="text-emerald-400">Yeast</span>
+                            </div>
+                            <p class="text-slate-300 text-[11px] mt-1">💡 产生二氧化碳与酒精，让口感蓬松</p>
+                        </div>
+                    </div>
+
+                    <!-- Item 2: Lactic Acid Bacteria -->
+                    <div id="item-yogurt" draggable="true" data-type="yogurt" class="draggable-item tooltip-card p-3 rounded-xl bg-slate-900 border border-emerald-500/40 hover:border-emerald-400 flex items-center justify-between shadow-lg">
+                        <div class="flex items-center space-x-2">
+                            <i class="fa-solid fa-grip-vertical text-slate-500 text-xs"></i>
+                            <span class="font-bold text-emerald-300 text-sm">乳酸菌</span>
+                        </div>
+                        <span class="text-[10px] bg-emerald-950 text-emerald-400 px-1.5 py-0.5 rounded border border-emerald-800">LAB</span>
+
+                        <!-- Tooltip -->
+                        <div class="tooltip-content absolute left-0 bottom-full mb-2 w-56 bg-slate-950 border border-cyan-400/50 rounded-lg p-2.5 text-xs shadow-2xl z-40">
+                            <div class="font-semibold text-cyan-300 flex justify-between">
+                                <span>拼音: rǔ suān jūn</span>
+                                <span class="text-emerald-400">Lactic acid bacteria</span>
+                            </div>
+                            <p class="text-slate-300 text-[11px] mt-1">💡 产生乳酸酸味，延长食品保质期</p>
+                        </div>
+                    </div>
+
+                    <!-- Item 3: Mold -->
+                    <div id="item-cheese" draggable="true" data-type="cheese" class="draggable-item tooltip-card p-3 rounded-xl bg-slate-900 border border-emerald-500/40 hover:border-emerald-400 flex items-center justify-between shadow-lg">
+                        <div class="flex items-center space-x-2">
+                            <i class="fa-solid fa-grip-vertical text-slate-500 text-xs"></i>
+                            <span class="font-bold text-emerald-300 text-sm">霉菌</span>
+                        </div>
+                        <span class="text-[10px] bg-emerald-950 text-emerald-400 px-1.5 py-0.5 rounded border border-emerald-800">Mold</span>
+
+                        <!-- Tooltip -->
+                        <div class="tooltip-content absolute left-0 bottom-full mb-2 w-56 bg-slate-950 border border-cyan-400/50 rounded-lg p-2.5 text-xs shadow-2xl z-40">
+                            <div class="font-semibold text-cyan-300 flex justify-between">
+                                <span>拼音: méi jūn</span>
+                                <span class="text-emerald-400">Mold</span>
+                            </div>
+                            <p class="text-slate-300 text-[11px] mt-1">💡 水解蛋白质，创造丰富奶酪风味</p>
+                        </div>
+                    </div>
+
+                    <!-- Item 4: Pathogenic Bacteria -->
+                    <div id="item-moldy" draggable="true" data-type="moldy" class="draggable-item tooltip-card p-3 rounded-xl bg-slate-900 border border-emerald-500/40 hover:border-emerald-400 flex items-center justify-between shadow-lg">
+                        <div class="flex items-center space-x-2">
+                            <i class="fa-solid fa-grip-vertical text-slate-500 text-xs"></i>
+                            <span class="font-bold text-emerald-300 text-sm">致病菌</span>
+                        </div>
+                        <span class="text-[10px] bg-emerald-950 text-emerald-400 px-1.5 py-0.5 rounded border border-emerald-800">Pathogen</span>
+
+                        <!-- Tooltip -->
+                        <div class="tooltip-content absolute left-0 bottom-full mb-2 w-56 bg-slate-950 border border-cyan-400/50 rounded-lg p-2.5 text-xs shadow-2xl z-40">
+                            <div class="font-semibold text-cyan-300 flex justify-between">
+                                <span>拼音: zhì bìng jūn</span>
+                                <span class="text-emerald-400">Pathogenic bacteria</span>
+                            </div>
+                            <p class="text-slate-300 text-[11px] mt-1">⚠️ 产生毒素破坏结构，导致变质安全隐患</p>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Bottom Control Footer -->
+            <div class="flex items-center justify-between pt-4 mt-2 border-t border-slate-800/80">
+                <button id="reset-drag-btn" class="px-3.5 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold flex items-center gap-1.5 border border-slate-700 transition">
+                    <i class="fa-solid fa-rotate-left"></i> 重置配对 (Reset)
+                </button>
+
+                <div id="drag-feedback" class="text-xs md:text-sm font-medium text-slate-400 text-center">
+                    请把右下方的 4 个微生物标签拖入对应的食品卡片中
+                </div>
+
+                <button id="to-page-2-btn" class="px-5 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-emerald-400 text-slate-950 font-bold text-xs md:text-sm hover:brightness-110 shadow-lg shadow-cyan-500/25 flex items-center gap-1.5 transition">
+                    <span>下一页: 导入思考</span>
+                    <i class="fa-solid fa-arrow-right"></i>
+                </button>
+            </div>
+        </main>
+
+
+        <!-- ================= PAGE 2: PINYIN QUIZ & CORE LESSON INTRO ================= -->
+        <main id="page-2" class="hidden flex-grow flex-col justify-between transition-opacity duration-500">
+            
+            <div class="max-w-3xl mx-auto w-full my-auto space-y-5">
+                
+                <!-- Oral Question Banner with Full Character-by-Character Pinyin & English -->
+                <div class="glass-card p-6 rounded-2xl border-l-4 border-l-cyan-400 shadow-2xl relative">
+                    <div class="absolute -top-3 left-6 px-3 py-0.5 rounded-full bg-cyan-500 text-slate-950 text-xs font-bold uppercase tracking-wider">
+                        <i class="fa-solid fa-comments mr-1"></i> 课前引言思考 (Discussion Prompt)
+                    </div>
+
+                    <!-- Question Line 1 with Pinyin -->
+                    <div class="mt-3 text-center sm:text-left leading-relaxed">
+                        <div class="inline-flex flex-wrap items-center justify-center sm:justify-start gap-y-3 gap-x-1 text-slate-100 font-medium text-lg md:text-xl">
+                            <ruby>大<rt>dà</rt></ruby><ruby>家<rt>jiā</rt></ruby>
+                            <ruby>想<rt>xiǎng</rt></ruby><ruby>一<rt>yī</rt></ruby><ruby>想<rt>xiǎng</rt></ruby>，
+                            <ruby>在<rt>zài</rt></ruby>
+                            <ruby>我<rt>wǒ</rt></ruby><ruby>们<rt>men</rt></ruby>
+                            <ruby>的<rt>de</rt></ruby>
+                            <ruby>生<rt>shēng</rt></ruby><ruby>活<rt>huó</rt></ruby>
+                            <ruby>中<rt>zhōng</rt></ruby>，
+                            <ruby>哪<rt>nǎ</rt></ruby><ruby>些<rt>xiē</rt></ruby>
+                            <ruby>是<rt>shì</rt></ruby>
+                            <ruby>和<rt>hé</rt></ruby>
+                            <ruby>食<rt>shí</rt></ruby><ruby>品<rt>pǐn</rt></ruby>
+                            <ruby>密<rt>mì</rt></ruby><ruby>切<rt>qiè</rt></ruby>
+                            <ruby>相<rt>xiāng</rt></ruby><ruby>关<rt>guān</rt></ruby>
+                            <ruby>的<rt>de</rt></ruby>
+                            <ruby>微<rt>wēi</rt></ruby><ruby>生<rt>shēng</rt></ruby><ruby>物<rt>wù</rt></ruby>？
+                        </div>
+                        <p class="text-xs text-cyan-400/90 italic mt-1">
+                            English: "Let's think, in our daily life, which microorganisms are closely related to food?"
+                        </p>
+                    </div>
+
+                    <!-- Question Line 2 with Pinyin -->
+                    <div class="mt-4 pt-3 border-t border-slate-800 text-center sm:text-left">
+                        <div class="inline-flex flex-wrap items-center justify-center sm:justify-start gap-y-3 gap-x-1 text-slate-100 font-medium text-lg md:text-xl">
+                            <ruby>它<rt>tā</rt></ruby><ruby>们<rt>men</rt></ruby>
+                            <ruby>又<rt>yòu</rt></ruby>
+                            <ruby>有<rt>yǒu</rt></ruby>
+                            <ruby>什<rt>shén</rt></ruby><ruby>么<rt>me</rt></ruby>
+                            <ruby>作<rt>zuò</rt></ruby><ruby>用<rt>yòng</rt></ruby>
+                            <ruby>呢<rt>ne</rt></ruby>？
+                        </div>
+                        <p class="text-xs text-cyan-400/90 italic mt-1">
+                            English: "And what functions do they have?"
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Multi-Choice Quiz Options (5 Options: 3 Correct, 2 Distractors) -->
+                <div class="glass-card p-6 rounded-2xl space-y-4">
+                    <div class="flex items-center justify-between mb-1">
+                        <h3 class="text-base font-bold text-slate-100 flex items-center gap-2">
+                            <i class="fa-solid fa-list-check text-emerald-400"></i>
+                            请勾选与食品密切相关的选项（多选 / Multi-select）
+                        </h3>
+                        <span class="text-xs text-slate-400">选择您认为正确的选项</span>
+                    </div>
+
+                    <form id="quiz-form" class="space-y-3">
+                        <!-- Option A (Distractor: Solar Energy) -->
+                        <label class="quiz-option flex items-center p-3.5 rounded-xl border border-slate-800 bg-slate-900/60 cursor-pointer hover:border-cyan-500/50 transition">
+                            <input type="checkbox" name="quiz" value="E" class="w-4 h-4 rounded text-cyan-500 focus:ring-cyan-400 bg-slate-950 border-slate-700">
+                            <div class="ml-3">
+                                <span class="font-semibold text-slate-200">A. 太阳能 (Solar energy)</span>
+                            </div>
+                        </label>
+
+                        <!-- Option B (Correct: LAB) -->
+                        <label class="quiz-option flex items-center p-3.5 rounded-xl border border-slate-800 bg-slate-900/60 cursor-pointer hover:border-cyan-500/50 transition">
+                            <input type="checkbox" name="quiz" value="B" class="w-4 h-4 rounded text-cyan-500 focus:ring-cyan-400 bg-slate-950 border-slate-700">
+                            <div class="ml-3">
+                                <span class="font-semibold text-slate-200">B. 乳酸菌 (Lactic acid bacteria)</span>
+                            </div>
+                        </label>
+
+                        <!-- Option C (Distractor: Dinosaur) -->
+                        <label class="quiz-option flex items-center p-3.5 rounded-xl border border-slate-800 bg-slate-900/60 cursor-pointer hover:border-cyan-500/50 transition">
+                            <input type="checkbox" name="quiz" value="D" class="w-4 h-4 rounded text-cyan-500 focus:ring-cyan-400 bg-slate-950 border-slate-700">
+                            <div class="ml-3">
+                                <span class="font-semibold text-slate-200">C. 恐龙 (Dinosaur)</span>
+                            </div>
+                        </label>
+
+                        <!-- Option D (Correct: Yeast) -->
+                        <label class="quiz-option flex items-center p-3.5 rounded-xl border border-slate-800 bg-slate-900/60 cursor-pointer hover:border-cyan-500/50 transition">
+                            <input type="checkbox" name="quiz" value="A" class="w-4 h-4 rounded text-cyan-500 focus:ring-cyan-400 bg-slate-950 border-slate-700">
+                            <div class="ml-3">
+                                <span class="font-semibold text-slate-200">D. 酵母菌 (Yeast)</span>
+                            </div>
+                        </label>
+
+                        <!-- Option E (Correct: Mold) -->
+                        <label class="quiz-option flex items-center p-3.5 rounded-xl border border-slate-800 bg-slate-900/60 cursor-pointer hover:border-cyan-500/50 transition">
+                            <input type="checkbox" name="quiz" value="C" class="w-4 h-4 rounded text-cyan-500 focus:ring-cyan-400 bg-slate-950 border-slate-700">
+                            <div class="ml-3">
+                                <span class="font-semibold text-slate-200">E. 霉菌 (Mold)</span>
+                            </div>
+                        </label>
+                    </form>
+
+                    <!-- Answer Feedback Box -->
+                    <div id="quiz-result" class="hidden p-4 rounded-xl text-sm font-medium border"></div>
+
+                    <!-- Submit & Proceed Button -->
+                    <div class="pt-2 flex justify-between items-center">
+                        <button id="back-to-page-1-btn" class="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold flex items-center gap-2 border border-slate-700 transition">
+                            <i class="fa-solid fa-arrow-left"></i> 返回配对
+                        </button>
+                        <button id="submit-quiz-btn" class="px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-400 to-cyan-500 text-slate-950 font-bold text-sm hover:brightness-110 shadow-lg shadow-emerald-500/25 flex items-center gap-2 transition">
+                            <span>提交回答并开启课题</span>
+                            <i class="fa-solid fa-circle-check"></i>
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+
+    </div>
+
+    <!-- ================= MODAL: ORIGINAL LESSON SLIDE PRESENTATION ================= -->
+    <div id="slide-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-xl hidden opacity-0 transition-opacity duration-500">
+        <div class="glass-card max-w-4xl w-full rounded-2xl overflow-hidden border border-cyan-500/40 shadow-2xl relative flex flex-col max-h-[90vh]">
+            
+            <!-- Modal Header -->
+            <div class="px-6 py-4 border-b border-slate-800 flex items-center justify-between bg-slate-900/80">
+                <div class="flex items-center space-x-2">
+                    <span class="w-3 h-3 rounded-full bg-red-500 inline-block"></span>
+                    <span class="w-3 h-3 rounded-full bg-yellow-500 inline-block"></span>
+                    <span class="w-3 h-3 rounded-full bg-green-500 inline-block"></span>
+                    <span class="text-xs text-slate-400 font-mono ml-2">Lesson Presentation Slide</span>
+                </div>
+                <button id="close-modal-btn" class="text-slate-400 hover:text-white transition">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+            </div>
+
+            <!-- Slide Content Body -->
+            <div class="p-6 overflow-y-auto space-y-6 flex-grow">
+                
+                <!-- Slide Visual Frame -->
+                <div class="relative w-full h-56 md:h-72 rounded-xl overflow-hidden border border-cyan-500/30 bg-slate-950">
+                    <img src="https://i.ibb.co.com/5xRgDDXB/image.png" alt="课前思考" class="w-full h-full object-cover opacity-90" onerror="this.onerror=null; this.parentElement.innerHTML='<div class=\"w-full h-full flex flex-col items-center justify-center bg-gradient-to-r from-slate-950 via-cyan-950 to-slate-950 text-cyan-400 p-6 text-center\"><i class=\"fa-solid fa-microscope text-5xl mb-3\"></i><h3 class=\"text-2xl font-bold\">课前思考</h3><p class=\"text-xs text-slate-400 mt-2\">人类生活在一个被微生物环绕的世界里，其实肉眼看不见的微生物，才是地球的真正主角。</p></div>';">
+                </div>
+
+                <!-- Reflection Statement -->
+                <div class="text-center max-w-2xl mx-auto space-y-3">
+                    <p class="text-base md:text-lg text-slate-200 font-light leading-relaxed">
+                        “人类生活在一个被微生物环绕的世界里，其实肉眼看不见的微生物，才是地球的真正主角。”
+                    </p>
+                    <div class="w-16 h-0.5 bg-gradient-to-r from-transparent via-cyan-400 to-transparent mx-auto"></div>
+                </div>
+
+                <!-- Two Main Core Reflection Questions -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="p-5 rounded-xl bg-cyan-950/40 border border-cyan-500/30">
+                        <div class="text-cyan-400 font-bold text-lg mb-1">1. 核心分类</div>
+                        <p class="text-slate-200 text-sm font-medium">
+                            微生物中与食品密切相关的主要有哪些呢？
+                        </p>
+                    </div>
+
+                    <div class="p-5 rounded-xl bg-emerald-950/40 border border-emerald-500/30">
+                        <div class="text-emerald-400 font-bold text-lg mb-1">2. 核心作用</div>
+                        <p class="text-slate-200 text-sm font-medium">
+                            这些食品微生物又有哪些作用呢？
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="px-6 py-4 border-t border-slate-800 bg-slate-900/90 flex justify-between items-center">
+                <span class="text-xs text-slate-400">食品工程课程 • 《奇妙的食品微生物》</span>
+                <button id="restart-app-btn" class="px-4 py-2 rounded-lg bg-cyan-500 text-slate-950 font-bold text-xs hover:bg-cyan-400 transition">
+                    <i class="fa-solid fa-rotate-left mr-1"></i> 重新开始热身
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- JavaScript Logic -->
+    <script>
+        // ================= BACKGROUND PARTICLE CANVAS =================
+        const bgCanvas = document.getElementById('bg-canvas');
+        const ctx = bgCanvas.getContext('2d');
+
+        function resizeCanvas() {
+            bgCanvas.width = window.innerWidth;
+            bgCanvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        class MicrobeParticle {
+            constructor() {
+                this.reset();
+            }
+            reset() {
+                this.x = Math.random() * bgCanvas.width;
+                this.y = Math.random() * bgCanvas.height;
+                this.radius = Math.random() * 2.5 + 0.5;
+                this.vx = (Math.random() - 0.5) * 0.4;
+                this.vy = (Math.random() - 0.5) * 0.4;
+                this.alpha = Math.random() * 0.5 + 0.2;
+                this.color = Math.random() > 0.5 ? '#00f2fe' : '#38ef7d';
+            }
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                if (this.x < 0 || this.x > bgCanvas.width || this.y < 0 || this.y > bgCanvas.height) {
+                    this.reset();
+                }
+            }
+            draw() {
+                ctx.save();
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.globalAlpha = this.alpha;
+                ctx.shadowBlur = 8;
+                ctx.shadowColor = this.color;
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        const particles = Array.from({ length: 45 }, () => new MicrobeParticle());
+
+        function animateParticles() {
+            ctx.clearRect(0, 0, bgCanvas.width, bgCanvas.height);
+            particles.forEach(p => {
+                p.update();
+                p.draw();
+            });
+            requestAnimationFrame(animateParticles);
+        }
+        animateParticles();
+
+
+        // ================= HTML5 DRAG AND DROP LOGIC =================
+        const draggableItems = document.querySelectorAll('.draggable-item');
+        const dropZones = document.querySelectorAll('.drop-zone');
+        const dragSourceContainer = document.getElementById('drag-source-container');
+        const dragFeedback = document.getElementById('drag-feedback');
+        let draggedItem = null;
+
+        draggableItems.forEach(item => {
+            item.addEventListener('dragstart', (e) => {
+                draggedItem = item;
+                e.dataTransfer.setData('text/plain', item.id);
+                setTimeout(() => item.classList.add('opacity-40'), 0);
+            });
+
+            item.addEventListener('dragend', () => {
+                if (draggedItem) {
+                    draggedItem.classList.remove('opacity-40');
+                }
+                draggedItem = null;
+            });
+        });
+
+        dropZones.forEach(zone => {
+            zone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                zone.classList.add('drag-over');
+            });
+
+            zone.addEventListener('dragleave', () => {
+                zone.classList.remove('drag-over');
+            });
+
+            zone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                zone.classList.remove('drag-over');
+
+                if (!draggedItem) return;
+
+                const targetFood = zone.getAttribute('data-target');
+                const itemType = draggedItem.getAttribute('data-type');
+
+                // If drop zone already has an item, return previous item to source container
+                const currentChild = zone.querySelector('.draggable-item');
+                if (currentChild) {
+                    dragSourceContainer.appendChild(currentChild);
+                }
+
+                // Append new dragged item into zone
+                zone.appendChild(draggedItem);
+                
+                // Hide default placeholder text
+                const hint = zone.querySelector('.drop-hint');
+                if (hint) hint.style.display = 'none';
+
+                // Check correctness
+                if (targetFood === itemType) {
+                    zone.style.borderColor = '#38ef7d';
+                    zone.style.backgroundColor = 'rgba(56, 239, 125, 0.15)';
+                } else {
+                    zone.style.borderColor = '#ff4b2b';
+                    zone.style.backgroundColor = 'rgba(255, 75, 43, 0.15)';
+                }
+
+                checkAllMatches();
+            });
+        });
+
+        function checkAllMatches() {
+            let placedCount = 0;
+            let correctCount = 0;
+
+            dropZones.forEach(zone => {
+                const child = zone.querySelector('.draggable-item');
+                if (child) {
+                    placedCount++;
+                    const targetFood = zone.getAttribute('data-target');
+                    const itemType = child.getAttribute('data-type');
+                    if (targetFood === itemType) correctCount++;
+                }
+            });
+
+            if (placedCount === 4) {
+                if (correctCount === 4) {
+                    dragFeedback.textContent = '🎉 完美！全部 4 组拖拽匹配正确！点击“下一页”进入思考问答。';
+                    dragFeedback.className = 'text-xs md:text-sm font-bold text-emerald-400';
+                } else {
+                    dragFeedback.textContent = `已放置 4 组 (正确 ${correctCount}/4)。红框代表拖放有误，可重新移动调节！`;
+                    dragFeedback.className = 'text-xs md:text-sm font-medium text-amber-300';
+                }
+            } else {
+                dragFeedback.textContent = `已拖拽匹配 ${placedCount}/4 组`;
+                dragFeedback.className = 'text-xs md:text-sm font-medium text-cyan-300';
+            }
+        }
+
+        // Reset Drag & Drop
+        document.getElementById('reset-drag-btn').addEventListener('click', () => {
+            dropZones.forEach(zone => {
+                const child = zone.querySelector('.draggable-item');
+                if (child) {
+                    dragSourceContainer.appendChild(child);
+                }
+                zone.style.borderColor = 'rgba(0, 242, 254, 0.3)';
+                zone.style.backgroundColor = 'transparent';
+                const hint = zone.querySelector('.drop-hint');
+                if (hint) hint.style.display = 'block';
+            });
+            dragFeedback.textContent = '已重置拖拽位置。';
+            dragFeedback.className = 'text-xs md:text-sm font-medium text-slate-400';
+        });
+
+
+        // ================= PAGE SWITCHING =================
+        const page1 = document.getElementById('page-1');
+        const page2 = document.getElementById('page-2');
+        const page1Pill = document.getElementById('page1-pill');
+        const page2Pill = document.getElementById('page2-pill');
+
+        function showPage(pageNum) {
+            if (pageNum === 1) {
+                page2.classList.add('hidden');
+                page1.classList.remove('hidden');
+                page1Pill.className = 'px-3 py-1 rounded-full text-xs font-semibold bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 transition-all';
+                page2Pill.className = 'px-3 py-1 rounded-full text-xs font-semibold bg-slate-800 text-slate-500 border border-slate-700 transition-all';
+            } else {
+                page1.classList.add('hidden');
+                page2.classList.remove('hidden');
+                page2.classList.add('flex');
+                page2Pill.className = 'px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 transition-all';
+                page1Pill.className = 'px-3 py-1 rounded-full text-xs font-semibold bg-slate-800 text-slate-500 border border-slate-700 transition-all';
+            }
+        }
+
+        document.getElementById('to-page-2-btn').addEventListener('click', () => showPage(2));
+        document.getElementById('back-to-page-1-btn').addEventListener('click', () => showPage(1));
+
+
+        // ================= PAGE 2: QUIZ & MODAL TRANSITION =================
+        const quizForm = document.getElementById('quiz-form');
+        const quizResult = document.getElementById('quiz-result');
+        const slideModal = document.getElementById('slide-modal');
+
+        document.getElementById('submit-quiz-btn').addEventListener('click', (e) => {
+            e.preventDefault();
+            const checkedValues = Array.from(document.querySelectorAll('input[name="quiz"]:checked')).map(cb => cb.value);
+
+            if (checkedValues.length === 0) {
+                quizResult.classList.remove('hidden');
+                quizResult.className = 'p-4 rounded-xl text-sm font-medium border bg-amber-950/40 text-amber-300 border-amber-800/60';
+                quizResult.innerHTML = '<i class="fa-solid fa-triangle-exclamation mr-1"></i> 请至少勾选一个选项哦！';
+                return;
+            }
+
+            const isACorrect = checkedValues.includes('A');
+            const isBCorrect = checkedValues.includes('B');
+            const isCCorrect = checkedValues.includes('C');
+            const hasDistractor = checkedValues.includes('D') || checkedValues.includes('E');
+
+            quizResult.classList.remove('hidden');
+
+            if (isACorrect && isBCorrect && isCCorrect && !hasDistractor) {
+                quizResult.className = 'p-4 rounded-xl text-sm font-medium border bg-emerald-950/60 text-emerald-300 border-emerald-500/50';
+                quizResult.innerHTML = '✨ <b>回答完全正确！</b> 酵母菌、乳酸菌和霉菌是现代食品工程中最核心的有益微生物伙伴。正在开启课堂导读 Slide...';
+                setTimeout(openModal, 1200);
+            } else if (hasDistractor) {
+                quizResult.className = 'p-4 rounded-xl text-sm font-medium border bg-rose-950/50 text-rose-300 border-rose-800/60';
+                quizResult.innerHTML = '⚠️ <b>提示：</b> 选项中包含了与食品微生物无关的干扰项（如恐龙/太阳能），请重新勾选！';
+            } else {
+                quizResult.className = 'p-4 rounded-xl text-sm font-medium border bg-cyan-950/50 text-cyan-300 border-cyan-800/60';
+                quizResult.innerHTML = '👍 选得很好！酵母菌、乳酸菌和霉菌都是正确的食品微生物，点击下方按钮开启课堂课题。';
+                setTimeout(openModal, 1500);
+            }
+        });
+
+        function openModal() {
+            slideModal.classList.remove('hidden');
+            setTimeout(() => {
+                slideModal.classList.remove('opacity-0');
+            }, 10);
+        }
+
+        function closeModal() {
+            slideModal.classList.add('opacity-0');
+            setTimeout(() => {
+                slideModal.classList.add('hidden');
+            }, 500);
+        }
+
+        document.getElementById('close-modal-btn').addEventListener('click', closeModal);
+        document.getElementById('restart-app-btn').addEventListener('click', () => {
+            closeModal();
+            showPage(1);
+            document.getElementById('reset-drag-btn').click();
+            quizForm.reset();
+            quizResult.classList.add('hidden');
+        });
+    </script>
+</body>
+</html>
